@@ -101,7 +101,8 @@ These are real issues in the current version, listed so the results are read cor
 2. (~**Regional and national rows are mixed in with states.** About 4,100 rows are aggregates of other rows, so the same information is counted more than once.~)
   - Aggregate rows removed with latest commit. 
 3. **The clustering table averages across demographics and years.** It filters age group to `Overall` but not demographic. Each cell averages about 16 rows (gender, race groups, and years).
-4. **Overlapping time periods.** Pooled 2019–2022 rows overlap with single-year rows, and the model only sees `YearStart`.
+4. (~**Overlapping time periods.** Pooled 2019–2022 rows overlap with single-year rows, and the model only sees `YearStart`.~)
+ - Kept rows that span the same year (i.e., YearStart == 2022 && YearEnd == 2022 means the row is kept).
 5. **Scaling happens before the train/test split, and the target is scaled too.** Error is reported on a 0–1 scale instead of percentage points.
 6. **Survey noise.** The median 95% confidence interval in this data is about 16 percentage points wide. A model can't reliably beat that level of uncertainty.
 7. **k = 3 was chosen, not tuned.** Silhouette scores for k = 2 and k = 3 are nearly the same.
