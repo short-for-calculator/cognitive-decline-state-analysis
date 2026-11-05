@@ -98,7 +98,8 @@ Cluster averages and MAE are on the 0–1 scaled range, not in percentage points
 These are real issues in the current version, listed so the results are read correctly:
 
 1. **The target mixes four different measures.** The prediction is "the value for this topic," not one cognitive decline rate.
-2. **Regional and national rows are mixed in with states.** About 4,100 rows are aggregates of other rows, so the same information is counted more than once.
+2. (~**Regional and national rows are mixed in with states.** About 4,100 rows are aggregates of other rows, so the same information is counted more than once.~)
+  - Aggregate rows removed with latest commit. 
 3. **The clustering table averages across demographics and years.** It filters age group to `Overall` but not demographic. Each cell averages about 16 rows (gender, race groups, and years).
 4. **Overlapping time periods.** Pooled 2019–2022 rows overlap with single-year rows, and the model only sees `YearStart`.
 5. **Scaling happens before the train/test split, and the target is scaled too.** Error is reported on a 0–1 scale instead of percentage points.
@@ -107,7 +108,7 @@ These are real issues in the current version, listed so the results are read cor
 
 ## Planned improvements
 
-- Remove aggregate locations, and filter clustering to the fully `Overall` rows
+- Filter clustering to the fully `Overall` rows
 - Predict one topic at a time, or treat topic explicitly as an input and compare against a topic-average baseline
 - Keep the target in percentage points, and fit scalers on training data only
 - One-hot encode categories for the linear model
