@@ -35,11 +35,6 @@ cog['Stratification2'] = cog['Stratification2'].fillna('Overall')
 cog = cog.dropna(subset=['Low_Confidence_Limit', 'High_Confidence_Limit'])
 print('final shape:', cog.shape)
 
-# turn the category columns into numbers so sklearn can use them - label encoding
-cat_cols = ['LocationDesc', 'Topic', 'Stratification1', 'Stratification2']
-for c in cat_cols:
-    cog[c + '_enc'] = LabelEncoder().fit_transform(cog[c].astype(str))
-
 # scale everything 0-1 so year doesn't dominate percentage or vice versa
 num_cols = ['YearStart', 'Data_Value', 'Low_Confidence_Limit', 'High_Confidence_Limit']
 cog[num_cols] = MinMaxScaler().fit_transform(cog[num_cols])
@@ -71,13 +66,19 @@ for c in sorted(pivot['cluster'].unique()):
 # ~ part d: prediction ~
 """
 model uses single-year rows only, eliminating overlapping studies DURING TRAINING,
-model then tests on a year it hasn't seen.
+model then tests on a year it hasn't seen. created model_df variable to better fork clustering and model from
+shared cog df.
 """
 model_df = cog[cog["YearStart"] == cog["YearEnd"]].copy()
 
+# label encoding
+cat_cols = ['LocationDesc', 'Topic', 'Stratification1', 'Stratification2']
+for c in cat_cols:
+    model_df[c + '_enc'] = LabelEncoder().fit_transform(model_df[c].astype(str))
+
 features = [c + '_enc' for c in cat_cols] + ['YearStart']
-X = cog[features]
-y = cog['Data_Value']
+X = model_df[features]
+y = model_df['Data_Value']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 lr = LinearRegression().fit(X_train, y_train)
