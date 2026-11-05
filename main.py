@@ -27,6 +27,8 @@ cog = cog.drop(columns=['Data_Value_Footnote_Symbol', 'Data_Value_Footnote', 'Da
 AGGREGATES = ["US", "NRE", "MDW", "SOU", "WEST"]
 cog = cog[~cog["LocationAbbr"].isin(AGGREGATES)]
 
+# drop all rows that span multiple years, eliminating overlapping studies
+cog = cog[cog["YearStart"] == cog["YearEnd"]]
 
 # if 'StratificationCategory2' == 'Overall', 'Stratification2' also == 'Overall'
 cog['StratificationCategory2'] = cog['StratificationCategory2'].fillna('Overall')
