@@ -23,6 +23,11 @@ print('dropped', n - len(cog), 'rows with no Data_Value')
 # columns that provide no added value to analysis
 cog = cog.drop(columns=['Data_Value_Footnote_Symbol', 'Data_Value_Footnote', 'Data_Value_Alt'])
 
+# dropping regional aggregate rows
+AGGREGATES = ["US", "NRE", "MDW", "SOU", "WEST"]
+cog = cog[~cog["LocationAbbr"].isin(AGGREGATES)]
+
+
 # if 'StratificationCategory2' == 'Overall', 'Stratification2' also == 'Overall'
 cog['StratificationCategory2'] = cog['StratificationCategory2'].fillna('Overall')
 cog['Stratification2'] = cog['Stratification2'].fillna('Overall')
@@ -31,7 +36,7 @@ cog['Stratification2'] = cog['Stratification2'].fillna('Overall')
 cog = cog.dropna(subset=['Low_Confidence_Limit', 'High_Confidence_Limit'])
 print('final shape:', cog.shape)
 
-# turn the category columns into numbers so sklearn can use them
+# turn the category columns into numbers so sklearn can use them - label encoding
 cat_cols = ['LocationDesc', 'Topic', 'Stratification1', 'Stratification2']
 for c in cat_cols:
     cog[c + '_enc'] = LabelEncoder().fit_transform(cog[c].astype(str))
