@@ -27,9 +27,6 @@ cog = cog.drop(columns=['Data_Value_Footnote_Symbol', 'Data_Value_Footnote', 'Da
 AGGREGATES = ["US", "NRE", "MDW", "SOU", "WEST"]
 cog = cog[~cog["LocationAbbr"].isin(AGGREGATES)]
 
-# drop all rows that span multiple years, eliminating overlapping studies
-cog = cog[cog["YearStart"] == cog["YearEnd"]]
-
 # if 'StratificationCategory2' == 'Overall', 'Stratification2' also == 'Overall'
 cog['StratificationCategory2'] = cog['StratificationCategory2'].fillna('Overall')
 cog['Stratification2'] = cog['Stratification2'].fillna('Overall')
@@ -48,7 +45,18 @@ num_cols = ['YearStart', 'Data_Value', 'Low_Confidence_Limit', 'High_Confidence_
 cog[num_cols] = MinMaxScaler().fit_transform(cog[num_cols])
 
 # ~ part c: categorization and clustering! ~
-pivot = cog[(cog['Stratification1'] == 'Overall') & (cog['Data_Value_Type'] == 'Percentage')]
+"""
+originally, the pooling of multiple years was removed to adjust for skewed prediction results. 
+removing overlapping studies across strata, clustering now only takes into account the comprehensive studies 
+(listed as "Overall") across all unique values that can be inside a strata.
+(i.e., Stratification1 covers "50-64 years", "65 years or older" individually and then also "Overall" studies across both).
+
+Clustering now pools years from 2019 & 2022 across all states.
+"""
+pivot = cog[(cog['YearStart'] == 2019) & (cog['YearEnd'] == 2022)
+            & (cog['Stratification1'] == 'Overall')
+            & (cog['Stratification2'] == 'Overall')
+]
 pivot = pivot.pivot_table(index='LocationDesc', columns='Topic', values='Data_Value', aggfunc='mean').dropna()
 
 pivot_scaled = MinMaxScaler().fit_transform(pivot)
@@ -60,7 +68,13 @@ print(pivot.groupby('cluster').mean(numeric_only=True).round(1))
 for c in sorted(pivot['cluster'].unique()):
     print('cluster', c, '->', list(pivot[pivot['cluster'] == c].index[:6]))
 
-# ~ part d: random forest regression algorithm/prediction code block! ~
+# ~ part d: prediction ~
+"""
+model uses single-year rows only, eliminating overlapping studies DURING TRAINING,
+model then tests on a year it hasn't seen.
+"""
+model_df = cog[cog["YearStart"] == cog["YearEnd"]].copy()
+
 features = [c + '_enc' for c in cat_cols] + ['YearStart']
 X = cog[features]
 y = cog['Data_Value']
