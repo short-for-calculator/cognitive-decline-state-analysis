@@ -23,9 +23,9 @@ Only the first topic is a decline rate for the whole population. The other three
 
 Each row is broken down by:
 
-- **Location:** 50 states, DC, Puerto Rico, and 5 aggregates (Midwest, Northeast, South, West, and the national total)
-- **Age group** (`Stratification1`): Overall, 50–64, 65+
-- **Demographic** (`Stratification2`): Overall, Male, Female, or a race/ethnicity group
+- **Location:** 50 states, DC, Puerto Rico.
+- **Age group** (`Stratification1`): Overall
+- **Demographic** (`Stratification2`): Overall
 - **Year:** 2015–2022. Most rows cover a single year, and some cover the pooled range 2019–2022.
 
 ## How it works
