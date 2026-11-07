@@ -23,8 +23,6 @@ print('dropped', n - len(cog), 'rows with no Data_Value')
 # columns that provide no added value to analysis
 cog = cog.drop(columns=['Data_Value_Footnote_Symbol', 'Data_Value_Footnote', 'Data_Value_Alt'])
 
-# test comment
-
 # dropping regional aggregate rows
 AGGREGATES = ["US", "NRE", "MDW", "SOU", "WEST"]
 cog = cog[~cog["LocationAbbr"].isin(AGGREGATES)]
@@ -36,10 +34,6 @@ cog['Stratification2'] = cog['Stratification2'].fillna('Overall')
 # looking for rows with no confidence interval and dropping them
 cog = cog.dropna(subset=['Low_Confidence_Limit', 'High_Confidence_Limit'])
 print('final shape:', cog.shape)
-
-# scale everything 0-1 so year doesn't dominate percentage or vice versa
-num_cols = ['YearStart', 'Data_Value', 'Low_Confidence_Limit', 'High_Confidence_Limit']
-cog[num_cols] = MinMaxScaler().fit_transform(cog[num_cols])
 
 # ~ part c: categorization and clustering! ~
 """
