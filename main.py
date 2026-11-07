@@ -35,10 +35,6 @@ cog['Stratification2'] = cog['Stratification2'].fillna('Overall')
 cog = cog.dropna(subset=['Low_Confidence_Limit', 'High_Confidence_Limit'])
 print('final shape:', cog.shape)
 
-# scale everything 0-1 so year doesn't dominate percentage or vice versa
-num_cols = ['YearStart', 'Data_Value', 'Low_Confidence_Limit', 'High_Confidence_Limit']
-cog[num_cols] = MinMaxScaler().fit_transform(cog[num_cols])
-
 # ~ part c: categorization and clustering! ~
 """
 originally, the pooling of multiple years was removed to adjust for skewed prediction results. 
