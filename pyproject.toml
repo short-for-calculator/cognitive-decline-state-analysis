@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cognitive-decline-state-analysis"
+description = "Clustering U.S. states and predicting subjective cognitive decline rates from CDC BRFSS data"
+readme = "README.md"
+license = "MIT"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=3.0.6",
+    "openpyxl>=3.1.5",
+    "scikit-learn>=1.9.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.17.4",
+    "pytest>=9.2.0",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
