@@ -85,29 +85,30 @@ Cluster averages and MAE are on the 0–1 scaled range, not in percentage points
 ### What the results mean
 
 - **Topic explains most of the prediction.** The four topics have very different typical values, so knowing the topic gets you most of the way. Predicting each topic's average alone scores R² of about 0.63. The random forest improves that to 0.81 by also using location, demographic, age, and year.
-- **The linear regression result comes from the encoding, not the model.** Label encoding treats categories as ordered numbers (for example, location 0 to 56), which a linear model can't use well. A random forest can still split on these values, so it is less affected.
-- **Puerto Rico forms its own cluster** because its values are far from every state's. With min-max scaling, one outlier like this can take a whole cluster.
+Linear regression’s weak score came from the encoding, not the model. LabelEncoder gave each state an integer (Alabama = 0, Alaska = 1, and so on), so linear regression treated states as if they had a meaningful order. Switching to OneHotEncoder gives each category its own yes/no column (is_Alabama, is_Arizona, …), so the model learns a separate adjustment for each state with no fake ordering. With that one change, linear regression’s R² rose from about 0.01 to 0.81.
+- ~**Puerto Rico forms its own cluster** because its values are far from every state's. With min-max scaling, one outlier like this can take a whole cluster.~
+  - Puerto Rico used to form its own cluster. After switching to the CDC’s pooled 2019–2022 estimates for the whole population, it now groups with Illinois and North Carolina, the three locations where the largest share of people with SCD report needing help with daily activities. It still stands out for having the lowest SCD rate (about 7%).
 
 ## Known limitations
 
 These are real issues in the current version, listed so the results are read correctly:
 
 1. **The target mixes four different measures.** The prediction is "the value for this topic," not one cognitive decline rate.
-2. (~**Regional and national rows are mixed in with states.** About 4,100 rows are aggregates of other rows, so the same information is counted more than once.~)
-  - Aggregate rows removed with latest commit. 
-3. **The clustering table averages across demographics and years.** It filters age group to `Overall` but not demographic. Each cell averages about 16 rows (gender, race groups, and years).
-4. (~**Overlapping time periods.** Pooled 2019–2022 rows overlap with single-year rows, and the model only sees `YearStart`.~)
- - Kept rows that span the same year (i.e., YearStart == 2022 && YearEnd == 2022 means the row is kept).
-5. **Scaling happens before the train/test split, and the target is scaled too.** Error is reported on a 0–1 scale instead of percentage points.
-6. **Survey noise.** The median 95% confidence interval in this data is about 16 percentage points wide. A model can't reliably beat that level of uncertainty.
-7. **k = 3 was chosen, not tuned.** Silhouette scores for k = 2 and k = 3 are nearly the same.
+2. ~~**Regional and national rows are mixed in with states.** About 4,100 rows are aggregates of other rows, so the same information is counted more than once.~~
+   - **Fixed:** the national total and the four Census regions are filtered out by `LocationAbbr` before clustering or modeling.
+3. ~~**The clustering table averages across demographics and years.** It filters age group to `Overall` but not demographic. Each cell averages about 16 rows (gender, race groups, and years).~~
+   - **Fixed:** the clustering table now uses only the CDC's pooled 2019–2022 estimates with both `Stratification1` and `Stratification2` set to `Overall`, so each cell is exactly one value for the whole population. Massachusetts, Montana, and New Jersey have no pooled estimates, so 49 locations are clustered.
+4. ~~**Overlapping time periods.** Pooled 2019–2022 rows overlap with single-year rows, and the model only sees `YearStart`.~~
+   - **Fixed:** the model now trains only on single-year rows (where `YearStart` equals `YearEnd`). The pooled rows are still used for clustering, where they're the better source.
+5. ~~**Scaling happens before the train/test split, and the target is scaled too.** Error is reported on a 0–1 scale instead of percentage points.~~
+   - **Fixed:** the scaling step was removed. The random forest doesn't need it, and errors are now reported in percentage points.
+6. **Survey noise.** The median 95% confidence interval in this data is about 16 percentage points wide, so prediction errors of a few points are already within the survey's own uncertainty.
+7. **k = 3 was chosen, not tuned.** On the pooled table, silhouette scores for k = 2 through 6 all fall between 0.24 and 0.27, so no k clearly wins and the states overlap substantially.
 
 ## Planned improvements
 
-- Filter clustering to the fully `Overall` rows
 - Predict one topic at a time, or treat topic explicitly as an input and compare against a topic-average baseline
 - Keep the target in percentage points, and fit scalers on training data only
-- One-hot encode categories for the linear model
 - Hold out whole groups or later years in testing, not just random rows
 - Add charts: a cluster map, predicted vs. actual values, and feature importance
 - Split `main.py` into functions, add a download script instead of committing the data, and add tests
