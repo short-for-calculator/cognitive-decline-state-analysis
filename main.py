@@ -7,6 +7,9 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_absolute_error
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.pipeline import Pipeline
 
 df = pd.read_excel('Alzheimers_Disease_dataset.xlsx')
 
@@ -69,22 +72,33 @@ model_df = cog[cog["YearStart"] == cog["YearEnd"]].copy()
 
 # label encoding
 cat_cols = ['LocationDesc', 'Topic', 'Stratification1', 'Stratification2']
-for c in cat_cols:
-    model_df[c + '_enc'] = LabelEncoder().fit_transform(model_df[c].astype(str))
 
-features = [c + '_enc' for c in cat_cols] + ['YearStart']
+features = cat_cols + ['YearStart']
 X = model_df[features]
 y = model_df['Data_Value']
+
+#
+preprocess = ColumnTransformer([
+    ("categories", OneHotEncoder(handle_unknown="ignore"), cat_cols),
+    ("year", "passthrough", ["YearStart"]),
+])
+
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-lr = LinearRegression().fit(X_train, y_train)
+
+lr = Pipeline([("prep", preprocess), ("model", LinearRegression())])
+lr.fit(X_train, y_train)
 pred = lr.predict(X_test)
 print('linear regression -> r2:', round(r2_score(y_test, pred), 3), 'mae:', round(mean_absolute_error(y_test, pred), 2))
 
-rf = RandomForestRegressor(n_estimators=200, max_depth=12, random_state=42, n_jobs=-1).fit(X_train, y_train)
+rf = Pipeline([
+    ("prep", preprocess),
+    ("model", RandomForestRegressor(n_estimators=200, max_depth=12, random_state=42, n_jobs=-1)),
+]).fit(X_train, y_train)
 pred = rf.predict(X_test)
 print('random forest -> r2:', round(r2_score(y_test, pred), 3), 'mae:', round(mean_absolute_error(y_test, pred), 2))
 
-print(pd.Series(rf.feature_importances_, index=features).sort_values(ascending=False))
+# Cause of AttributeError
+# print(pd.Series(rf.feature_importances_, index=features).sort_values(ascending=False))
 
 
