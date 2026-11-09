@@ -63,26 +63,21 @@ Output of `python main.py`:
 ```
 (22182, 31)
 dropped 8046 rows with no Data_Value
-final shape: (14039, 28)
+final shape: (9952, 28)
+Topic    Functional difficulties associated with subjective cognitive decline or memory loss among older adults  ...  Talked with health care professional about subjective cognitive decline or memory loss
+cluster                                                                                                          ...                                                                                        
+0                                                     32.0                                                       ...                                               43.0                                     
+1                                                     51.9                                                       ...                                               49.2                                     
+2                                                     42.2                                                       ...                                               45.1                                     
 
-cluster  Functional difficulties  ...  Talked with health care professional
-0        0.4                      ...  0.4
-1        0.3                      ...  0.4
-2        0.7                      ...  0.6
+[3 rows x 4 columns]
+cluster 0 -> ['Alaska', 'Arizona', 'California', 'Colorado', 'Connecticut', 'Delaware']
+cluster 1 -> ['Illinois', 'North Carolina', 'Puerto Rico']
+cluster 2 -> ['Alabama', 'Arkansas', 'District of Columbia', 'Florida', 'Georgia', 'Indiana']
+linear regression -> r2: 0.812 mae: 5.19
+random forest -> r2: 0.869 mae: 4.11
 
-cluster 0 -> ['Alabama', 'Arizona', 'Arkansas', 'District of Columbia', 'Florida', 'Georgia']
-cluster 1 -> ['Alaska', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Hawaii']
-cluster 2 -> ['Puerto Rico']
-
-linear regression -> r2: 0.008  mae: 0.14
-random forest     -> r2: 0.806  mae: 0.05
-
-Feature importance (random forest)
-Topic_enc              0.682
-Stratification2_enc    0.125
-LocationDesc_enc       0.087
-Stratification1_enc    0.053
-YearStart              0.053
+Process finished with exit code 0
 ```
 
 Cluster averages and MAE are on the 0–1 scaled range, not in percentage points. The cluster lists are cut off at six locations each.
