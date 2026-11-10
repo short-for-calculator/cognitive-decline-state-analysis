@@ -1,0 +1,24 @@
+# Python virtual environment
+.venv/
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Created by pip install -e .
+*.egg-info/
+build/
+dist/
+
+# Tool caches
+.ruff_cache/
+.pytest_cache/
+
+# PyCharm settings
+.idea/
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# macOS folder metadata
+.DS_Store
