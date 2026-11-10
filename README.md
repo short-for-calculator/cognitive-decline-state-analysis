@@ -82,6 +82,18 @@ Process finished with exit code 0
 
 Cluster averages and MAE are on the 0–1 scaled range, not in percentage points. The cluster lists are cut off at six locations each.
 
+### Silhouette scoring for k number of clusters ###
+
+| k | Silhouette score | Cluster sizes |
+|---|---|---|
+| 2 | 0.244 | 28, 21 |
+| 3 | 0.255 | 25, 3, 21 |
+| 4 | 0.258 | 14, 12, 3, 20 |
+| 5 | 0.273 | 21, 8, 11, 3, 6 |
+| 6 | 0.252 | 15, 9, 9, 6, 3, 7 |
+
+- **Silhouette scores are too low to form sharply distinct groups.** The choice for k = 3 is just to keep clusters readable and easy to interpret. The three clusters should be viewed as one lower-impact group, one moderate group, and one high-need group, ("high-need" refers to, of the people who reported SCD, 53% needed assistance due to SCD, as opposed to the other clusters coming in at 27% and 37%). 
+
 ### What the results mean
 
 - **Topic explains most of the prediction.** The four topics have very different typical values, so knowing the topic gets you most of the way. Predicting each topic's average alone scores R² of about 0.63. The random forest improves that to 0.81 by also using location, demographic, age, and year.
