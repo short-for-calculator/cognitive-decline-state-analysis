@@ -86,7 +86,16 @@ preprocess = ColumnTransformer([
     ("year", "passthrough", ["YearStart"]),
 ])
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# YearStart value that model will be testing on
+TEST_YEAR = 2022
+
+# training on every year prior to the test year
+train = model_df[model_df["YearStart"] < TEST_YEAR]
+# rows for testing area about 11% of available training material
+test = model_df[model_df["YearStart"] == TEST_YEAR]
+
+X_train, y_train = train[features], train["Data_Value"]
+X_test, y_test = test[features], test["Data_Value"]
 
 
 lr = Pipeline([("prep", preprocess), ("model", LinearRegression())])
