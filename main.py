@@ -10,9 +10,12 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.pipeline import Pipeline
 
+# const for shortening of topic label names, primarily for pivot table formatting
+TOPIC_LABELS = {"Subjective cognitive decline or memory loss among older adults": "SCD", "Functional difficulties associated with subjective cognitive decline or memory loss among older adults": "Functional", "Need assistance with day-to-day activities because of subjective cognitive decline or memory loss": "Needs help", "Talked with health care professional about subjective cognitive decline or memory loss": "Talked with provider"}
+
 df = pd.read_excel('Alzheimers_Disease_dataset.xlsx')
 
-# ~ part c: data normalization and cleaning! ~
+# ~ data normalization and cleaning! ~
 # dropping all rows except those mentions 'Cognitive Decline'
 cog = df[df['Class'] == 'Cognitive Decline'].copy()
 print(cog.shape)
@@ -37,20 +40,23 @@ cog['Stratification2'] = cog['Stratification2'].fillna('Overall')
 cog = cog.dropna(subset=['Low_Confidence_Limit', 'High_Confidence_Limit'])
 print('final shape:', cog.shape)
 
-# ~ part c: categorization and clustering! ~
+# ~ categorization and clustering! ~
 """
 originally, the pooling of multiple years was removed to adjust for skewed prediction results. 
 removing overlapping studies across strata, clustering now only takes into account the comprehensive studies 
 (listed as "Overall") across all unique values that can be inside a strata.
 (i.e., Stratification1 covers "50-64 years", "65 years or older" individually and then also "Overall" studies across both).
 
-Clustering now pools years from 2019 & 2022 across all states.
+Clustering now pools years from 2019-2022 across all states.
 """
 pivot = cog[(cog['YearStart'] == 2019) & (cog['YearEnd'] == 2022)
             & (cog['Stratification1'] == 'Overall')
             & (cog['Stratification2'] == 'Overall')
 ]
 pivot = pivot.pivot_table(index='LocationDesc', columns='Topic', values='Data_Value', aggfunc='mean').dropna()
+
+# shortening pivot table column names
+pivot = pivot.rename(columns=TOPIC_LABELS)
 
 pivot_scaled = MinMaxScaler().fit_transform(pivot)
 
@@ -61,7 +67,7 @@ print(pivot.groupby('cluster').mean(numeric_only=True).round(1))
 for c in sorted(pivot['cluster'].unique()):
     print('cluster', c, '->', list(pivot[pivot['cluster'] == c].index[:6]))
 
-# ~ part d: prediction ~
+# ~ model training and testing ~
 """
 model uses single-year rows only, eliminating overlapping studies DURING TRAINING,
 model then tests on a year it hasn't seen. created model_df variable to better fork clustering and model from
@@ -69,14 +75,12 @@ shared cog df.
 """
 model_df = cog[cog["YearStart"] == cog["YearEnd"]].copy()
 
-# label encoding
 cat_cols = ['LocationDesc', 'Topic', 'Stratification1', 'Stratification2']
 
 features = cat_cols + ['YearStart']
 X = model_df[features]
 y = model_df['Data_Value']
 
-#
 preprocess = ColumnTransformer([
     ("categories", OneHotEncoder(handle_unknown="ignore"), cat_cols),
     ("year", "passthrough", ["YearStart"]),
