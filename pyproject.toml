@@ -7,7 +7,7 @@ name = "cognitive-decline-state-analysis"
 description = "Clustering U.S. states and predicting subjective cognitive decline rates from CDC BRFSS data"
 readme = "README.md"
 license = "MIT"
-version = "0.1.0"
+version = "1.0.0"
 requires-python = ">=3.11"
 dependencies = [
     "pandas>=3.0.6",
