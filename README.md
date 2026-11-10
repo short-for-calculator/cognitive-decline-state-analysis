@@ -177,7 +177,7 @@ Locations in each cluster (also in `results/state_clusters.csv`):
 - [x] Split `main.py` into functions
 - [ ] Add a predicted vs. actual chart
 - [ ] Add a download script instead of committing the data
-- [ ] Add tests and continuous integration
+- [x] Add tests and continuous integration
 - [ ] Compare a second baseline that uses each state's past average for each topic
 
 ## Running it
