@@ -49,6 +49,7 @@ removing overlapping studies across strata, clustering now only takes into accou
 
 Clustering now pools years from 2019-2022 across all states.
 """
+
 pivot = cog[(cog['YearStart'] == 2019) & (cog['YearEnd'] == 2022)
             & (cog['Stratification1'] == 'Overall')
             & (cog['Stratification2'] == 'Overall')
@@ -58,12 +59,17 @@ pivot = pivot.pivot_table(index='LocationDesc', columns='Topic', values='Data_Va
 # shortening pivot table column names
 pivot = pivot.rename(columns=TOPIC_LABELS)
 
+print('clustering table:', pivot.shape)
+print('cluster averages (%):')
 pivot_scaled = MinMaxScaler().fit_transform(pivot)
 
 km = KMeans(n_clusters=3, random_state=42, n_init=10)
 pivot['cluster'] = km.fit_predict(pivot_scaled)
 
+# ~ cluster table ~
 print(pivot.groupby('cluster').mean(numeric_only=True).round(1))
+print('cluster sizes:', pivot['cluster'].value_counts().sort_index().to_dict())
+
 for c in sorted(pivot['cluster'].unique()):
     print('cluster', c, '->', list(pivot[pivot['cluster'] == c].index[:6]))
 
@@ -97,18 +103,26 @@ test = model_df[model_df["YearStart"] == TEST_YEAR]
 X_train, y_train = train[features], train["Data_Value"]
 X_test, y_test = test[features], test["Data_Value"]
 
+# presentation prints
+print('train rows:', len(train), '| test rows:', len(test))
+print('models, tested on 2022:')
+
+# baseline -- predict each topic's average from the training years
+topic_means = train.groupby("Topic")["Data_Value"].mean()
+base_pred = test["Topic"].map(topic_means)
+print('topic baseline -> r2:', round(r2_score(y_test, base_pred), 3), 'mae (pts):', round(mean_absolute_error(y_test, base_pred), 2))
 
 lr = Pipeline([("prep", preprocess), ("model", LinearRegression())])
 lr.fit(X_train, y_train)
 pred = lr.predict(X_test)
-print('linear regression -> r2:', round(r2_score(y_test, pred), 3), 'mae:', round(mean_absolute_error(y_test, pred), 2))
+print('linear regression -> r2:', round(r2_score(y_test, pred), 3), 'mae (pts):', round(mean_absolute_error(y_test, pred), 2))
 
 rf = Pipeline([
     ("prep", preprocess),
     ("model", RandomForestRegressor(n_estimators=200, max_depth=12, random_state=42, n_jobs=-1)),
 ]).fit(X_train, y_train)
 pred = rf.predict(X_test)
-print('random forest -> r2:', round(r2_score(y_test, pred), 3), 'mae:', round(mean_absolute_error(y_test, pred), 2))
+print('random forest -> r2:', round(r2_score(y_test, pred), 3), 'mae (pts):', round(mean_absolute_error(y_test, pred), 2))
 
 # Cause of AttributeError
 # print(pd.Series(rf.feature_importances_, index=features).sort_values(ascending=False))
