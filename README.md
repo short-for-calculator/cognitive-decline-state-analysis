@@ -1,3 +1,4 @@
+[![CI](https://github.com/short-for-calculator/cognitive-decline-state-analysis/actions/workflows/ci.yml/badge.svg)](https://github.com/short-for-calculator/cognitive-decline-state-analysis/actions/workflows/ci.yml)
 # Cognitive Decline State Analysis
 
 Clusters U.S. states by how older adults report subjective cognitive decline (SCD), and trains regression models to predict a reported percentage from location, topic, age group, demographic group, and year.
