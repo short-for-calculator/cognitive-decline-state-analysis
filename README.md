@@ -101,29 +101,62 @@ Linear regression’s weak score came from the encoding, not the model. LabelEnc
 - ~**Puerto Rico forms its own cluster** because its values are far from every state's. With min-max scaling, one outlier like this can take a whole cluster.~
   - Puerto Rico used to form its own cluster. After switching to the CDC’s pooled 2019–2022 estimates for the whole population, it now groups with Illinois and North Carolina, the three locations where the largest share of people with SCD report needing help with daily activities. It still stands out for having the lowest SCD rate (about 7%).
 
-## Known limitations
+## Cluster map
 
-These are real issues in the current version, listed so the results are read correctly:
+**[View the interactive cluster map](results/state_clusters.geojson)**: click any state to see its cluster and its four topic rates.
 
-1. **The target mixes four different measures.** The prediction is "the value for this topic," not one cognitive decline rate.
-2. ~~**Regional and national rows are mixed in with states.** About 4,100 rows are aggregates of other rows, so the same information is counted more than once.~~
-   - **Fixed:** the national total and the four Census regions are filtered out by `LocationAbbr` before clustering or modeling.
-3. ~~**The clustering table averages across demographics and years.** It filters age group to `Overall` but not demographic. Each cell averages about 16 rows (gender, race groups, and years).~~
-   - **Fixed:** the clustering table now uses only the CDC's pooled 2019–2022 estimates with both `Stratification1` and `Stratification2` set to `Overall`, so each cell is exactly one value for the whole population. Massachusetts, Montana, and New Jersey have no pooled estimates, so 49 locations are clustered.
-4. ~~**Overlapping time periods.** Pooled 2019–2022 rows overlap with single-year rows, and the model only sees `YearStart`.~~
-   - **Fixed:** the model now trains only on single-year rows (where `YearStart` equals `YearEnd`). The pooled rows are still used for clustering, where they're the better source.
-5. ~~**Scaling happens before the train/test split, and the target is scaled too.** Error is reported on a 0–1 scale instead of percentage points.~~
-   - **Fixed:** the scaling step was removed. The random forest doesn't need it, and errors are now reported in percentage points.
-6. **Survey noise.** The median 95% confidence interval in this data is about 16 percentage points wide, so prediction errors of a few points are already within the survey's own uncertainty.
-7. **k = 3 was chosen, not tuned.** On the pooled table, silhouette scores for k = 2 through 6 all fall between 0.24 and 0.27, so no k clearly wins and the states overlap substantially.
+| | Cluster | Locations | SCD | Functional | Needs help | Talked with provider |
+|---|---|---|---|---|---|---|
+| 🟦 | Lower impact (cluster 0) | 25 | 10.6% | 32.0% | 27.0% | 43.0% |
+| 🟨 | Moderate (cluster 2) | 21 | 12.7% | 42.2% | 36.7% | 45.1% |
+| 🟪 | High need (cluster 1) | 3 | 6.7% | 51.9% | 52.7% | 49.2% |
+| ⬜ | No pooled 2019–2022 estimate | 3 | | | | |
+
+Locations in each cluster:
+
+- **Lower impact:** Alaska, Arizona, California, Colorado, Connecticut, Delaware, Hawaii, Idaho, Iowa, Kansas, Maine, Maryland, Minnesota, Missouri, Nebraska, New Hampshire, North Dakota, Oregon, South Dakota, Utah, Vermont, Virginia, Washington, Wisconsin, Wyoming
+- **Moderate:** Alabama, Arkansas, District of Columbia, Florida, Georgia, Indiana, Kentucky, Louisiana, Michigan, Mississippi, Nevada, New Mexico, New York, Ohio, Oklahoma, Pennsylvania, Rhode Island, South Carolina, Tennessee, Texas, West Virginia
+- **High need:** Illinois, North Carolina, Puerto Rico
+- **No estimate:** Massachusetts, Montana, New Jersey
+
+Location was not a clustering feature, yet the clusters follow geography: most of the South falls in the moderate group, while most of the West and Plains fall in the lower-impact group.
+
+## Model comparison
+
+All models were trained on 2015–2021 and tested on 2022.
+
+| Model | R² | MAE (percentage points) | Improvement over baseline |
+|---|---|---|---|
+| Topic-average baseline | 0.749 | 5.46 | — |
+| Linear regression | 0.795 | 5.29 | 0.17 points |
+| **Random forest** | **0.854** | **4.34** | **1.12 points (about 20%)** |
+
+```mermaid
+xychart-beta
+    title "Average error on 2022 test data (lower is better)"
+    x-axis ["Topic baseline", "Linear regression", "Random forest"]
+    y-axis "MAE (percentage points)" 0 --> 6
+    bar [5.46, 5.29, 4.34]
+```
+
+### MAE by topic
+
+| Topic | Baseline | Linear regression | Random forest | Test rows |
+|---|---|---|---|---|
+| SCD | **1.81** | 4.50 | 2.21 | 249 |
+| Functional | 7.39 | 4.87 | **4.71** | 210 |
+| Needs help | 6.91 | **4.85** | 5.14 | 203 |
+| Talked with provider | 6.44 | 7.01 | **5.68** | 215 |
+
+Bold marks the lowest error in each row. The random forest improves on the baseline for the three follow-up topics, but neither model beats the baseline for the SCD rate itself, which varies little between groups. Linear regression is worse than the baseline on SCD and on talking with a provider, which is why its overall improvement is small.
 
 ## Planned improvements
 
-- Predict one topic at a time, or treat topic explicitly as an input and compare against a topic-average baseline
-- Keep the target in percentage points, and fit scalers on training data only
-- Hold out whole groups or later years in testing, not just random rows
-- Add charts: a cluster map, predicted vs. actual values, and feature importance
-- Split `main.py` into functions, add a download script instead of committing the data, and add tests
+- [x] Predict one topic at a time, or treat topic explicitly as an input and compare against a topic-average baseline
+- [x] Keep the target in percentage points, and fit scalers on training data only
+- [x] Hold out whole groups or later years in testing, not just random rows
+- [x] Add charts: a cluster map, predicted vs. actual values, and feature importance
+- [x] Split `main.py` into functions, add a download script instead of committing the data, and add tests
 
 ## Running it
 
