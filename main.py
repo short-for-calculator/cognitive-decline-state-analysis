@@ -12,10 +12,28 @@ from sklearn.inspection import permutation_importance
 from sklearn.metrics import silhouette_score
 from pathlib import Path
 
-# const for shortening of topic label names, primarily for pivot table formatting
-TOPIC_LABELS = {"Subjective cognitive decline or memory loss among older adults": "SCD", "Functional difficulties associated with subjective cognitive decline or memory loss among older adults": "Functional", "Need assistance with day-to-day activities because of subjective cognitive decline or memory loss": "Needs help", "Talked with health care professional about subjective cognitive decline or memory loss": "Talked with provider"}
+# settings / const variables
+TOPIC_LABELS = {
+    "Subjective cognitive decline or memory loss among older adults": "SCD",
+    "Functional difficulties associated with subjective cognitive decline or memory loss among older adults": "Functional",
+    "Need assistance with day-to-day activities because of subjective cognitive decline or memory loss": "Needs help",
+    "Talked with health care professional about subjective cognitive decline or memory loss": "Talked with provider"
+}
+AGGREGATES = ["US", "NRE", "MDW", "SOU", "WEST"]
+TEST_YEAR = 2022
+DATA_PATH = "Alzheimers_Disease_dataset.xlsx"
+RESULTS_DIR = Path("results")
+POOL_START, POOL_END = 2019, 2022
+K = 3
+RANDOM_SEED = 42
+CAT_COLS = ["LocationDesc", "Topic", "Stratification1", "Stratification2"]
+FEATURES = CAT_COLS + ["YearStart"]
+CLUSTERS_CSV = RESULTS_DIR / "state_clusters.csv"
 
-df = pd.read_excel('Alzheimers_Disease_dataset.xlsx')
+def main():
+    pass
+
+df = pd.read_excel(DATA_PATH)
 
 # ~ data normalization and cleaning! ~
 # dropping all rows except those mentions 'Cognitive Decline'
@@ -31,7 +49,6 @@ print('dropped', n - len(cog), 'rows with no Data_Value')
 cog = cog.drop(columns=['Data_Value_Footnote_Symbol', 'Data_Value_Footnote', 'Data_Value_Alt'])
 
 # dropping regional aggregate rows
-AGGREGATES = ["US", "NRE", "MDW", "SOU", "WEST"]
 cog = cog[~cog["LocationAbbr"].isin(AGGREGATES)]
 
 # if 'StratificationCategory2' == 'Overall', 'Stratification2' also == 'Overall'
@@ -52,7 +69,7 @@ removing overlapping studies across strata, clustering now only takes into accou
 Clustering now pools years from 2019-2022 across all states.
 """
 
-pivot = cog[(cog['YearStart'] == 2019) & (cog['YearEnd'] == 2022)
+pivot = cog[(cog['YearStart'] == POOL_START) & (cog['YearEnd'] == POOL_END)
             & (cog['Stratification1'] == 'Overall')
             & (cog['Stratification2'] == 'Overall')
 ]
@@ -62,24 +79,24 @@ pivot = pivot.pivot_table(index='LocationDesc', columns='Topic', values='Data_Va
 pivot = pivot.rename(columns=TOPIC_LABELS)
 
 print('clustering table:', pivot.shape)
-print('cluster averages (%):')
 pivot_scaled = MinMaxScaler().fit_transform(pivot)
 
 # compare k = 2 through 6 before choosing one
 for k in range(2, 7):
-    labels = KMeans(n_clusters=k, random_state=42, n_init=10).fit_predict(pivot_scaled)
-    print('k =', k, '| silhouette:', round(silhouette_score(pivot_scaled, labels), 3))
+    labels = KMeans(n_clusters=k, random_state=RANDOM_SEED, n_init=10).fit_predict(pivot_scaled)
+    print('k =', 3, '| silhouette:', round(silhouette_score(pivot_scaled, labels), K))
 
-km = KMeans(n_clusters=3, random_state=42, n_init=10)
+km = KMeans(n_clusters=K, random_state=RANDOM_SEED, n_init=10)
 
 pivot['cluster'] = km.fit_predict(pivot_scaled)
 
 # due to output restrictions: saving every location's cluster and topic rates to a CSV
-Path("results").mkdir(exist_ok=True)
-pivot.sort_values(["cluster", "LocationDesc"]).round(1).to_csv("results/state_clusters.csv")
-print('saved', len(pivot), 'locations to results/state_clusters.csv')
+RESULTS_DIR.mkdir(exist_ok=True)
+pivot.sort_values(["cluster", "LocationDesc"]).round(1).to_csv(CLUSTERS_CSV)
+print('saved', len(pivot), 'locations to', CLUSTERS_CSV)
 
 # ~ cluster table ~
+print('cluster averages (%):')
 print(pivot.groupby('cluster').mean(numeric_only=True).round(1))
 print('cluster sizes:', pivot['cluster'].value_counts().sort_index().to_dict())
 
@@ -94,31 +111,22 @@ shared cog df.
 """
 model_df = cog[cog["YearStart"] == cog["YearEnd"]].copy()
 
-cat_cols = ['LocationDesc', 'Topic', 'Stratification1', 'Stratification2']
-
-features = cat_cols + ['YearStart']
-X = model_df[features]
-y = model_df['Data_Value']
-
 preprocess = ColumnTransformer([
-    ("categories", OneHotEncoder(handle_unknown="ignore"), cat_cols),
+    ("categories", OneHotEncoder(handle_unknown="ignore"), CAT_COLS),
     ("year", "passthrough", ["YearStart"]),
 ])
 
-# YearStart value that model will be testing on
-TEST_YEAR = 2022
-
 # training on every year prior to the test year
 train = model_df[model_df["YearStart"] < TEST_YEAR]
-# rows for testing area about 11% of available training material
+# test on TEST_YEAR only, about 11% of single-year rows
 test = model_df[model_df["YearStart"] == TEST_YEAR]
 
-X_train, y_train = train[features], train["Data_Value"]
-X_test, y_test = test[features], test["Data_Value"]
+X_train, y_train = train[FEATURES], train["Data_Value"]
+X_test, y_test = test[FEATURES], test["Data_Value"]
 
 # presentation prints
 print('train rows:', len(train), '| test rows:', len(test))
-print('models, tested on 2022:')
+print(f'models, tested on {TEST_YEAR}:')
 
 # baseline -- predict each topic's average from the training years
 topic_means = train.groupby("Topic")["Data_Value"].mean()
@@ -132,7 +140,7 @@ print('linear regression -> r2:', round(r2_score(y_test, lr_pred), 3), 'mae (pts
 
 rf = Pipeline([
     ("prep", preprocess),
-    ("model", RandomForestRegressor(n_estimators=200, max_depth=12, random_state=42, n_jobs=-1)),
+    ("model", RandomForestRegressor(n_estimators=200, max_depth=12, random_state=RANDOM_SEED, n_jobs=-1)),
 ]).fit(X_train, y_train)
 rf_pred = rf.predict(X_test)
 print('random forest -> r2:', round(r2_score(y_test, rf_pred), 3), 'mae (pts):', round(mean_absolute_error(y_test, rf_pred), 2))
@@ -146,7 +154,7 @@ errors = pd.DataFrame({
 })
 per_topic = errors.groupby("Topic").mean().round(2)
 per_topic["test rows"] = errors["Topic"].value_counts()
-print('MAE by topic (pts), tested on 2022:')
+print(f'MAE by topic (pts), tested on {TEST_YEAR}:')
 print(per_topic.to_string())
 
 """
@@ -157,11 +165,11 @@ YearStart always scores 0 here, since every test row is from 2022.
 result = permutation_importance(
     rf, X_test, y_test,
     n_repeats=10,
-    random_state=42,
+    random_state=RANDOM_SEED,
     scoring="neg_mean_absolute_error",
     n_jobs=-1,
 )
-importances = pd.Series(result.importances_mean, index=features).sort_values(ascending=False)
+importances = pd.Series(result.importances_mean, index=FEATURES).sort_values(ascending=False)
 print('permutation importance (MAE increase, pts):')
 # hiding the "dtype: float64" pandas adds when printing the series
 print(importances.round(2).to_string())
