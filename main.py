@@ -63,6 +63,25 @@ def clean(df):
     return cog
 
 
+def cluster_rows(cog):
+    """Rows used for clustering: pooled POOL_START-POOL_END estimates for the whole population."""
+    return cog[(cog["YearStart"] == POOL_START) & (cog["YearEnd"] == POOL_END)
+               & (cog["Stratification1"] == "Overall")
+               & (cog["Stratification2"] == "Overall")]
+
+
+def model_rows(cog):
+    """Rows used for prediction: single-year rows, every age group and demographic."""
+    return cog[cog["YearStart"] == cog["YearEnd"]].copy()
+
+
+def split_by_year(model_df, test_year):
+    """Train on every year before test_year, test on test_year."""
+    train = model_df[model_df["YearStart"] < test_year]
+    test = model_df[model_df["YearStart"] == test_year]
+    return train, test
+
+
 def cluster(cog):
     """
     Cluster locations by their four topic rates and save each location's cluster.
@@ -71,10 +90,7 @@ def cluster(cog):
     set to "Overall" (all ages, all groups), so each location gets one value per topic.
     Single-year and subgroup rows are left for the prediction model.
     """
-    pivot = cog[(cog['YearStart'] == POOL_START) & (cog['YearEnd'] == POOL_END)
-                & (cog['Stratification1'] == 'Overall')
-                & (cog['Stratification2'] == 'Overall')
-                ]
+    pivot = cluster_rows(cog)
     pivot = pivot.pivot_table(index='LocationDesc', columns='Topic', values='Data_Value', aggfunc='mean').dropna()
 
     # shortening pivot table column names
@@ -114,17 +130,13 @@ def train_and_test(cog):
     Compares a topic-average baseline, linear regression, and a random forest,
     then reports per-topic MAE and permutation importance for the forest.
     """
-    model_df = cog[cog["YearStart"] == cog["YearEnd"]].copy()
 
     preprocess = ColumnTransformer([
         ("categories", OneHotEncoder(handle_unknown="ignore"), CAT_COLS),
         ("year", "passthrough", ["YearStart"]),
     ])
 
-    # training on every year prior to the test year
-    train = model_df[model_df["YearStart"] < TEST_YEAR]
-    # test on TEST_YEAR only, about 11% of single-year rows
-    test = model_df[model_df["YearStart"] == TEST_YEAR]
+    train, test = split_by_year(model_rows(cog), TEST_YEAR)
 
     X_train, y_train = train[FEATURES], train["Data_Value"]
     X_test, y_test = test[FEATURES], test["Data_Value"]
