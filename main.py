@@ -114,15 +114,27 @@ print('topic baseline -> r2:', round(r2_score(y_test, base_pred), 3), 'mae (pts)
 
 lr = Pipeline([("prep", preprocess), ("model", LinearRegression())])
 lr.fit(X_train, y_train)
-pred = lr.predict(X_test)
-print('linear regression -> r2:', round(r2_score(y_test, pred), 3), 'mae (pts):', round(mean_absolute_error(y_test, pred), 2))
+lr_pred = lr.predict(X_test)
+print('linear regression -> r2:', round(r2_score(y_test, lr_pred), 3), 'mae (pts):', round(mean_absolute_error(y_test, lr_pred), 2))
 
 rf = Pipeline([
     ("prep", preprocess),
     ("model", RandomForestRegressor(n_estimators=200, max_depth=12, random_state=42, n_jobs=-1)),
 ]).fit(X_train, y_train)
-pred = rf.predict(X_test)
-print('random forest -> r2:', round(r2_score(y_test, pred), 3), 'mae (pts):', round(mean_absolute_error(y_test, pred), 2))
+rf_pred = rf.predict(X_test)
+print('random forest -> r2:', round(r2_score(y_test, rf_pred), 3), 'mae (pts):', round(mean_absolute_error(y_test, rf_pred), 2))
+
+# after prediction per-topic MAE: average each model's absolute error within each topic
+errors = pd.DataFrame({
+    "Topic": test["Topic"].map(TOPIC_LABELS),
+    "baseline": (base_pred - y_test).abs(),
+    "linear regression": (lr_pred - y_test).abs(),
+    "random forest": (rf_pred - y_test).abs(),
+})
+per_topic = errors.groupby("Topic").mean().round(2)
+per_topic["test rows"] = errors["Topic"].value_counts()
+print('MAE by topic (pts), tested on 2022:')
+print(per_topic.to_string())
 
 """
 permutation importance: shuffle one feature at a time on the 2022 test set and
