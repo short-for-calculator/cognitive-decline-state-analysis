@@ -4,11 +4,11 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.cluster import KMeans
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_absolute_error
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.pipeline import Pipeline
+from sklearn.inspection import permutation_importance
 
 # const for shortening of topic label names, primarily for pivot table formatting
 TOPIC_LABELS = {"Subjective cognitive decline or memory loss among older adults": "SCD", "Functional difficulties associated with subjective cognitive decline or memory loss among older adults": "Functional", "Need assistance with day-to-day activities because of subjective cognitive decline or memory loss": "Needs help", "Talked with health care professional about subjective cognitive decline or memory loss": "Talked with provider"}
@@ -124,7 +124,21 @@ rf = Pipeline([
 pred = rf.predict(X_test)
 print('random forest -> r2:', round(r2_score(y_test, pred), 3), 'mae (pts):', round(mean_absolute_error(y_test, pred), 2))
 
-# Cause of AttributeError
-# print(pd.Series(rf.feature_importances_, index=features).sort_values(ascending=False))
+"""
+permutation importance: shuffle one feature at a time on the 2022 test set and
+measure how much MAE increases. a bigger increase means the model relies on it more.
+YearStart always scores 0 here, since every test row is from 2022.
+"""
+result = permutation_importance(
+    rf, X_test, y_test,
+    n_repeats=10,
+    random_state=42,
+    scoring="neg_mean_absolute_error",
+    n_jobs=-1,
+)
+importances = pd.Series(result.importances_mean, index=features).sort_values(ascending=False)
+print('permutation importance (MAE increase, pts):')
+# hiding the "dtype: float64" pandas adds when printing the series
+print(importances.round(2).to_string())
 
 
