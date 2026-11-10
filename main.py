@@ -72,13 +72,12 @@ for k in range(2, 7):
 
 km = KMeans(n_clusters=3, random_state=42, n_init=10)
 
+pivot['cluster'] = km.fit_predict(pivot_scaled)
 
 # due to output restrictions: saving every location's cluster and topic rates to a CSV
 Path("results").mkdir(exist_ok=True)
 pivot.sort_values(["cluster", "LocationDesc"]).round(1).to_csv("results/state_clusters.csv")
 print('saved', len(pivot), 'locations to results/state_clusters.csv')
-
-pivot['cluster'] = km.fit_predict(pivot_scaled)
 
 # ~ cluster table ~
 print(pivot.groupby('cluster').mean(numeric_only=True).round(1))
