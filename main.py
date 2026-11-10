@@ -10,6 +10,7 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.inspection import permutation_importance
 from sklearn.metrics import silhouette_score
+from pathlib import Path
 
 # const for shortening of topic label names, primarily for pivot table formatting
 TOPIC_LABELS = {"Subjective cognitive decline or memory loss among older adults": "SCD", "Functional difficulties associated with subjective cognitive decline or memory loss among older adults": "Functional", "Need assistance with day-to-day activities because of subjective cognitive decline or memory loss": "Needs help", "Talked with health care professional about subjective cognitive decline or memory loss": "Talked with provider"}
@@ -70,6 +71,12 @@ for k in range(2, 7):
     print('k =', k, '| silhouette:', round(silhouette_score(pivot_scaled, labels), 3))
 
 km = KMeans(n_clusters=3, random_state=42, n_init=10)
+
+# due to output restrictions: saving every location's cluster and topic rates to a CSV
+Path("results").mkdir(exist_ok=True)
+pivot.sort_values(["cluster", "LocationDesc"]).round(1).to_csv("results/state_clusters.csv")
+print('saved', len(pivot), 'locations to results/state_clusters.csv')
+
 pivot['cluster'] = km.fit_predict(pivot_scaled)
 
 # ~ cluster table ~
