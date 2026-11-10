@@ -9,6 +9,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.inspection import permutation_importance
+from sklearn.metrics import silhouette_score
 
 # const for shortening of topic label names, primarily for pivot table formatting
 TOPIC_LABELS = {"Subjective cognitive decline or memory loss among older adults": "SCD", "Functional difficulties associated with subjective cognitive decline or memory loss among older adults": "Functional", "Need assistance with day-to-day activities because of subjective cognitive decline or memory loss": "Needs help", "Talked with health care professional about subjective cognitive decline or memory loss": "Talked with provider"}
@@ -62,6 +63,11 @@ pivot = pivot.rename(columns=TOPIC_LABELS)
 print('clustering table:', pivot.shape)
 print('cluster averages (%):')
 pivot_scaled = MinMaxScaler().fit_transform(pivot)
+
+# compare k = 2 through 6 before choosing one
+for k in range(2, 7):
+    labels = KMeans(n_clusters=k, random_state=42, n_init=10).fit_predict(pivot_scaled)
+    print('k =', k, '| silhouette:', round(silhouette_score(pivot_scaled, labels), 3))
 
 km = KMeans(n_clusters=3, random_state=42, n_init=10)
 pivot['cluster'] = km.fit_predict(pivot_scaled)
